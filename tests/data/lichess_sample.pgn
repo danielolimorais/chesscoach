@@ -1,0 +1,55 @@
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/AbCd1234"]
+[Date "2026.09.25"]
+[White "oponente"]
+[Black "meu_user"]
+[Result "1-0"]
+[UTCDate "2026.09.25"]
+[UTCTime "18:30:00"]
+[WhiteElo "2005"]
+[BlackElo "1990"]
+[Variant "Standard"]
+[TimeControl "300+3"]
+[ECO "C78"]
+[Opening "Ruy Lopez: Morphy Defense"]
+[Termination "Normal"]
+
+1. e4 { [%clk 0:05:00] } 1... e5 { [%clk 0:05:00] } 2. Nf3 { [%clk 0:05:01] } 2... Nc6 { [%clk 0:05:02] } 3. Bb5 { [%clk 0:05:03] } 3... a6 { [%clk 0:05:01] } 4. Ba4 { [%clk 0:05:04] } 4... Nf6 { [%clk 0:05:03] } 5. O-O { [%clk 0:05:05] } 5... Be7 { [%clk 0:05:04] } 1-0
+
+[Event "Rated Rapid game"]
+[Site "https://lichess.org/EfGh5678"]
+[Date "2026.09.26"]
+[White "meu_user"]
+[Black "outro_oponente"]
+[Result "1-0"]
+[UTCDate "2026.09.26"]
+[UTCTime "19:00:00"]
+[WhiteElo "1995"]
+[BlackElo "1970"]
+[Variant "Standard"]
+[TimeControl "600+0"]
+[ECO "B20"]
+[Opening "Sicilian Defense"]
+[Termination "Normal"]
+
+1. e4 { [%clk 0:10:00] } 1... c5 { [%clk 0:10:00] } 2. Nf3 { [%clk 0:09:59] } 2... d6 { [%clk 0:09:58] } 1-0
+
+[Event "Rated Atomic game"]
+[Site "https://lichess.org/IjKl9012"]
+[Date "2026.09.27"]
+[White "meu_user"]
+[Black "alguem"]
+[Result "1-0"]
+[Variant "Atomic"]
+
+1. e4 e5 1-0
+
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/MnOp3456"]
+[Date "2026.09.28"]
+[White "dois"]
+[Black "estranhos"]
+[Result "0-1"]
+[Variant "Standard"]
+
+1. e4 e5 0-1

@@ -1,0 +1,25 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Banco local (gerado ao rodar; contém partidas baixadas)
+*.db
+*.db-shm
+*.db-wal
+
+# Stockfish: baixe em https://stockfishchess.org/download/ e coloque na pasta do projeto
+stockfish*
+!stockfish*.md
+
+# Front-end
+node_modules/
+dist/
+
+# Diversos
+_backup_*/
+.env
+.DS_Store
+Thumbs.db
