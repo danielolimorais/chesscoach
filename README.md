@@ -91,6 +91,25 @@ python analyze_all.py SEU_USUARIO                            # analisa as que fa
 O `analyze_all.py` pode ser interrompido com Ctrl+C e retomado depois; aceita `--limit N`
 e `--depth D`. O backend pode continuar ligado enquanto ele roda.
 
+## Machine learning: chance de errar
+
+Um modelo que estima a probabilidade de um lance seu ser erro grave, a partir só do que se
+sabe antes do lance (avaliação da posição, relógio, material, peças atacadas, fase…).
+
+```powershell
+python -m ml.train SEU_USUARIO                 # validação + teste temporal + relatório
+python -m ml.train SEU_USUARIO --equilibradas  # só posições com |avaliação| <= 3 peões
+python -m ml.train SEU_USUARIO --no-behavior   # sem o tempo gasto no lance
+```
+
+- Validação cruzada **agrupada por partida** (GroupKFold) e teste temporal (treina nas partidas
+  antigas, testa nas 20% mais recentes), para não haver vazamento entre lances da mesma partida.
+- Métricas: ROC-AUC e **PR-AUC** (só ~11% dos lances são erros graves, então acurácia engana).
+- Compara linha de base trivial, regressão logística e gradient boosting; mostra as features
+  mais importantes e a taxa de erro real por faixa de risco.
+- O relatório é salvo em `ml/results/`. O dataset (`python -m ml.dataset SEU_USUARIO`) vai para
+  `ml/data/`, que não entra no Git.
+
 ## Linha de comando
 
 ```powershell

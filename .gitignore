@@ -14,6 +14,9 @@ __pycache__/
 stockfish*
 !stockfish*.md
 
+# Dados de ML gerados (ml/data/*.csv); os relatórios em ml/results/ podem ir para o Git
+ml/data/
+
 # Front-end
 node_modules/
 dist/
