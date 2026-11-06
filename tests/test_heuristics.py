@@ -86,32 +86,27 @@ def test_unknown_error_is_other():
     assert classify_mistake(ctx_from("e4 e5", "Nf3")) == "other"
 
 
-# ------------------------------------------------------------------ exercício 1: hanging_piece
+# ------------------------------------------------------------------ hanging_piece
 
-@exercicio
 def test_hanging_queen():
     # 1.e4 d6 2.Qg4?? e o bispo de c8 captura a dama de graça
     assert hanging_piece(ctx_from("e4 d6", "Qg4", best="Nf3", reply="Bxg4"))
 
 
-@exercicio
 def test_quiet_reply_is_not_hanging():
     assert not hanging_piece(ctx_from("e4 d6", "Nf3", best="d4", reply="Bg4"))
 
 
-@exercicio
 def test_won_a_pawn_but_lost_the_knight():
     # 3.Nxe5?? ganha um peão, mas o cavalo em e5 não tem defensor: Nxe5
     assert hanging_piece(ctx_from("e4 e5 Nf3 Nc6", "Nxe5", best="Bb5", reply="Nxe5"))
 
 
-@exercicio
 def test_even_trade_is_not_hanging():
     # 4.Bxc6 dxc6: bispo por cavalo é troca, não peça de graça
     assert not hanging_piece(ctx_from("e4 e5 Nf3 Nc6 Bb5 a6", "Bxc6", best="Ba4", reply="dxc6"))
 
 
-@exercicio
 def test_defended_piece_is_not_hanging():
     # Cavalo em d5 defendido pelo peão e4: se o cavalo preto em f6 tomar, e4xd5 recaptura
     assert not hanging_piece(ctx_from("e4 e5 Nc3 Nf6", "Nd5", best="Nf3", reply="Nxd5"))
@@ -149,3 +144,20 @@ def test_playing_the_best_move_is_never_a_missed_tactic():
         assert not missed_tactic(ctx)
     except NotImplementedError:
         pytest.skip("exercício ainda não implementado")
+
+
+def test_en_passant_capture_value():
+    # No en passant a casa de destino está vazia, mas a captura vale um peão.
+    from heuristics import captured_value, material_gain
+    board = chess.Board()
+    for san in "e4 a6 e5 d5".split():
+        board.push_san(san)
+    move = board.parse_san("exd6")
+    assert captured_value(board, move) == 1
+    assert material_gain(board, move) == 0  # c7 e e7 recapturam em d6: peão por peão
+
+
+def test_queen_takes_defended_pawn_is_negative():
+    from heuristics import material_gain
+    board = chess.Board("4k3/8/2p5/3p4/8/8/8/3QK3 w - - 0 1")
+    assert material_gain(board, board.parse_san("Qxd5")) == 1 - 9

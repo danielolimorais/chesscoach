@@ -15,13 +15,13 @@ recarregar o relatório para ver o efeito. Não é preciso analisar de novo com 
 
 Seus exercícios
 ---------------
-`allowed_mate` e `missed_mate` estão prontos e servem de exemplo. `hanging_piece` e
-`missed_tactic` são seus: enquanto levantarem `NotImplementedError`, são simplesmente pulados.
+`allowed_mate`, `missed_mate` e `hanging_piece` estão prontos e servem de exemplo.
+`missed_tactic` é seu: enquanto levantar `NotImplementedError`, é simplesmente pulado.
 
     python -m pytest tests/test_heuristics.py -v
 
-Os testes desses dois começam como "xfail" (falha esperada). Quando sua implementação estiver
-certa, eles passam a aparecer como "XPASS"; aí remova o marcador `xfail` do teste.
+Os testes dele começam como "xfail" (falha esperada). Quando sua implementação estiver
+certa, eles passam a aparecer como "XPASS"; aí remova o marcador `@exercicio` do teste.
 """
 
 from __future__ import annotations
@@ -102,27 +102,59 @@ def missed_mate(ctx: MistakeContext) -> bool:
 # Exercícios
 # --------------------------------------------------------------------------------------------
 
-def hanging_piece(ctx: MistakeContext) -> bool:
-    """EXERCÍCIO 1: o seu lance deixou material de graça para o adversário.
+HANGING_THRESHOLD = 2  # saldo mínimo (em peões) para considerar material "de graça"
 
-    Ideia: depois do seu lance, a melhor resposta do adversário (`ctx.reply`) é uma captura
-    que ganha material de verdade.
 
-    Sugestão de caminho (faça um teste passar de cada vez):
-      1. Se não há `ctx.reply` ou ela não é captura, não é peça pendurada.
-         Dica: `after = ctx.board_after()` e `after.is_capture(ctx.reply)`.
-      2. Quanto o adversário ganha? O valor da peça capturada:
-         `piece_value(after.piece_at(ctx.reply.to_square))`.
-      3. Mas se a casa estiver defendida por você, você recaptura e o adversário perde a peça
-         que capturou. Dica: jogue a resposta numa cópia e use
-         `copia.is_attacked_by(ctx.me, ctx.reply.to_square)`.
-      4. E se o SEU lance também foi uma captura? Trocar bispo por cavalo não é "deixar de
-         graça". Desconte o que você ganhou com `ctx.played`.
-      5. Considere "pendurada" quando o saldo para o adversário for de 2 peões ou mais.
+def captured_value(board: chess.Board, move: chess.Move) -> int:
+    """Valor da peça que `move` captura (0 se não for captura)."""
+    if not board.is_capture(move):
+        return 0
+    if board.is_en_passant(move):
+        return PIECE_VALUES[chess.PAWN]  # no en passant a casa de destino está vazia
+    return piece_value(board.piece_at(move.to_square))
 
-    Os casos de teste estão em tests/test_heuristics.py (procure por "hanging").
+
+def material_gain(board: chess.Board, move: chess.Move) -> int:
+    """Saldo de material, para quem joga `move`, depois de UMA rodada de troca.
+
+    saldo = (o que `move` captura) − (a peça que se moveu, se o adversário puder recapturar)
+
+    Exemplos (rodada única, sem olhar trocas mais longas):
+      - Bispo toma cavalo indefeso:          3 − 0 = +3
+      - Bispo toma cavalo defendido:         3 − 3 =  0 (troca)
+      - Dama toma peão defendido:            1 − 9 = −8
+    Limitação conhecida: não simula sequências de várias capturas na mesma casa
+    (isso seria a "static exchange evaluation" completa, uma boa melhoria futura).
     """
-    raise NotImplementedError
+    gained = captured_value(board, move)
+    if gained == 0:
+        return 0
+    mover = board.piece_at(move.from_square)
+    after = board.copy(stack=False)
+    after.push(move)
+    # Depois do lance é a vez do adversário (`after.turn`): ele ataca a casa de destino?
+    recapture_possible = after.is_attacked_by(after.turn, move.to_square)
+    lost = piece_value(mover) if recapture_possible else 0
+    return gained - lost
+
+
+def hanging_piece(ctx: MistakeContext) -> bool:
+    """O seu lance deixou material de graça para o adversário.
+
+    saldo do adversário = material_gain(da resposta dele) − o que você capturou no seu lance
+    Se esse saldo for de HANGING_THRESHOLD peões ou mais, a peça ficou pendurada.
+
+    Por que descontar a sua captura: em 1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Bxc6 dxc6 o adversário
+    "ganha" o bispo, mas você já tinha levado o cavalo: é troca, não peça de graça.
+    """
+    if ctx.reply is None:
+        return False
+    after = ctx.board_after()
+    if not after.is_capture(ctx.reply):
+        return False
+    opponent_gain = material_gain(after, ctx.reply)
+    my_gain = captured_value(ctx.board, ctx.played)
+    return opponent_gain - my_gain >= HANGING_THRESHOLD
 
 
 def missed_tactic(ctx: MistakeContext) -> bool:
@@ -135,8 +167,8 @@ def missed_tactic(ctx: MistakeContext) -> bool:
       b) `ctx.best` é um garfo: depois dele, a peça que se moveu ataca 2 ou mais peças
          adversárias que valem 3 ou mais (ou o rei). Dica: `board.attacks(casa)`.
 
-    Repare que (a) reaproveita a lógica do exercício 1: vale extrair uma função auxiliar,
-    algo como `material_gain(board, move) -> int`.
+    Para (a), `material_gain(ctx.board, ctx.best)` já calcula o saldo com recaptura.
+    Para (b), jogue `ctx.best` numa cópia do tabuleiro e olhe `copia.attacks(ctx.best.to_square)`.
 
     Os casos de teste estão em tests/test_heuristics.py (procure por "tactic").
     """
