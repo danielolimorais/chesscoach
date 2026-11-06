@@ -15,13 +15,11 @@ recarregar o relatório para ver o efeito. Não é preciso analisar de novo com 
 
 Seus exercícios
 ---------------
-`allowed_mate`, `missed_mate` e `hanging_piece` estão prontos e servem de exemplo.
-`missed_tactic` é seu: enquanto levantar `NotImplementedError`, é simplesmente pulado.
+Detectores: `allowed_mate`, `missed_mate`, `hanging_piece` e `missed_tactic`.
+Para criar um novo, escreva uma função `(ctx) -> bool`, adicione em `DETECTORS` e um rótulo em
+`CATEGORY_LABELS`. Um detector que levante `NotImplementedError` é simplesmente pulado.
 
     python -m pytest tests/test_heuristics.py -v
-
-Os testes dele começam como "xfail" (falha esperada). Quando sua implementação estiver
-certa, eles passam a aparecer como "XPASS"; aí remova o marcador `@exercicio` do teste.
 """
 
 from __future__ import annotations
@@ -157,22 +155,65 @@ def hanging_piece(ctx: MistakeContext) -> bool:
     return opponent_gain - my_gain >= HANGING_THRESHOLD
 
 
-def missed_tactic(ctx: MistakeContext) -> bool:
-    """EXERCÍCIO 2: havia um golpe tático e você jogou outra coisa.
+TACTIC_THRESHOLD = 2  # ganho mínimo (em peões) para uma captura contar como golpe
+FORK_MIN_TARGET_VALUE = 3  # peões não contam como alvo de garfo
 
-    Ideia: o melhor lance (`ctx.best`) ganhava material de forma imediata e você não o jogou.
-    Uma primeira definição razoável, se `ctx.best` existir e for diferente de `ctx.played`:
-      a) `ctx.best` é uma captura que ganha 2 peões ou mais (mesmo raciocínio do exercício 1,
-         considerando a recaptura); OU
-      b) `ctx.best` é um garfo: depois dele, a peça que se moveu ataca 2 ou mais peças
-         adversárias que valem 3 ou mais (ou o rei). Dica: `board.attacks(casa)`.
 
-    Para (a), `material_gain(ctx.board, ctx.best)` já calcula o saldo com recaptura.
-    Para (b), jogue `ctx.best` numa cópia do tabuleiro e olhe `copia.attacks(ctx.best.to_square)`.
+def fork_targets(board: chess.Board, square: chess.Square) -> list[chess.Square]:
+    """Casas das peças que a peça em `square` ataca e que valem ser atacadas.
 
-    Os casos de teste estão em tests/test_heuristics.py (procure por "tactic").
+    Um alvo conta se for o rei, ou uma peça de valor >= FORK_MIN_TARGET_VALUE que
+    vale mais que o atacante ou não tem defensor (atacar uma dama com uma dama não é ameaça).
+    `board` é a posição depois do lance; a peça em `square` é de quem acabou de jogar.
     """
-    raise NotImplementedError
+    attacker = board.piece_at(square)
+    if attacker is None:
+        return []
+    enemy = not attacker.color
+    targets = []
+    for target_sq in board.attacks(square):
+        target = board.piece_at(target_sq)
+        if target is None or target.color != enemy:
+            continue
+        if target.piece_type == chess.KING:
+            targets.append(target_sq)
+            continue
+        value = piece_value(target)
+        if value < FORK_MIN_TARGET_VALUE:
+            continue
+        defended = board.is_attacked_by(enemy, target_sq)
+        if value > piece_value(attacker) or not defended:
+            targets.append(target_sq)
+    return targets
+
+
+def is_fork(board: chess.Board, move: chess.Move) -> bool:
+    """`move` cria um garfo: a peça movida ataca 2+ alvos e não pode ser simplesmente tomada."""
+    after = board.copy(stack=False)
+    after.push(move)
+    square = move.to_square
+    me = board.turn
+    # Se o adversário pode tomar a peça que garfa e ela não está defendida, o garfo não funciona.
+    if after.is_attacked_by(not me, square) and not after.is_attacked_by(me, square):
+        return False
+    return len(fork_targets(after, square)) >= 2
+
+
+def missed_tactic(ctx: MistakeContext) -> bool:
+    """Havia um golpe tático imediato e você jogou outra coisa.
+
+    Golpe = o melhor lance do Stockfish (`ctx.best`) é:
+      a) uma captura que ganha TACTIC_THRESHOLD peões ou mais, já considerando a recaptura; ou
+      b) um garfo (ver `is_fork`).
+
+    Limitações conhecidas: não detecta cravadas, raios-X, ataques descobertos nem golpes que só
+    ganham material depois de vários lances. Ficam como "Outros erros" (e como ideias futuras).
+    """
+    if ctx.best is None or ctx.best == ctx.played:
+        return False
+    if material_gain(ctx.board, ctx.best) >= TACTIC_THRESHOLD:
+        return True
+    return is_fork(ctx.board, ctx.best)
 
 
 # Ordem importa: o primeiro detector que reconhecer o erro dá o nome.

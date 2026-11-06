@@ -1,9 +1,5 @@
 """Testes das heurísticas de tipo de erro.
 
-Os testes marcados com `exercicio` testam funções que você vai implementar em heuristics.py.
-Enquanto elas levantam NotImplementedError, aparecem como "xfail". Quando você implementar
-corretamente, passam a aparecer como "XPASS"; então apague a linha `@exercicio` daquele teste.
-
     python -m pytest tests/test_heuristics.py -v
 """
 
@@ -19,7 +15,6 @@ from heuristics import (
     missed_tactic,
 )
 
-exercicio = pytest.mark.xfail(raises=NotImplementedError, reason="exercício ainda não implementado")
 
 
 def ctx_from(
@@ -112,38 +107,31 @@ def test_defended_piece_is_not_hanging():
     assert not hanging_piece(ctx_from("e4 e5 Nc3 Nf6", "Nd5", best="Nf3", reply="Nxd5"))
 
 
-# ------------------------------------------------------------------ exercício 2: missed_tactic
+# ------------------------------------------------------------------ missed_tactic
 
-@exercicio
 def test_missed_free_queen():
     # A torre em d2 podia capturar a dama indefesa em d5
     assert missed_tactic(ctx_from("4k3/8/8/3q4/8/8/3R4/4K3 w - - 0 1", "Ke2", best="Rxd5"))
 
 
-@exercicio
 def test_missed_knight_fork():
     # Nc7+ ataca o rei em e8 e a torre em a8 ao mesmo tempo
     assert missed_tactic(ctx_from("r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1", "Ke2", best="Nc7+"))
 
 
-@exercicio
 def test_capture_of_defended_piece_is_not_a_tactic():
     # Rxd6 ganharia um cavalo mas perderia a torre (exd6): não é golpe
     assert not missed_tactic(ctx_from("4k3/4p3/3n4/8/8/8/3R4/4K3 w - - 0 1", "Ke2", best="Rxd6"))
 
 
-@exercicio
 def test_quiet_best_move_is_not_a_tactic():
     assert not missed_tactic(ctx_from("4k3/8/8/8/8/8/3R4/4K3 w - - 0 1", "Kf2", best="Ke2"))
 
 
 def test_playing_the_best_move_is_never_a_missed_tactic():
-    # Funciona mesmo antes do exercício: se você jogou o melhor lance, não perdeu nada.
+    # Se você jogou o melhor lance, não perdeu nada.
     ctx = ctx_from("4k3/8/8/3q4/8/8/3R4/4K3 w - - 0 1", "Rxd5", best="Rxd5")
-    try:
-        assert not missed_tactic(ctx)
-    except NotImplementedError:
-        pytest.skip("exercício ainda não implementado")
+    assert not missed_tactic(ctx)
 
 
 def test_en_passant_capture_value():
@@ -161,3 +149,23 @@ def test_queen_takes_defended_pawn_is_negative():
     from heuristics import material_gain
     board = chess.Board("4k3/8/2p5/3p4/8/8/8/3QK3 w - - 0 1")
     assert material_gain(board, board.parse_san("Qxd5")) == 1 - 9
+
+
+
+def test_fork_of_two_pawns_is_not_a_tactic():
+    # Nd5 ataca os peões de c7 e e7: peões não contam como alvo de garfo
+    assert not missed_tactic(ctx_from("4k3/2p1p3/8/8/8/2N5/8/4K3 w - - 0 1", "Kf2", best="Nd5"))
+
+
+def test_fork_with_piece_that_can_be_taken_for_free_is_not_a_tactic():
+    # Nc7+ garfaria rei e torre, mas a dama em d8 toma o cavalo indefeso
+    assert not missed_tactic(ctx_from("r2qk3/8/8/1N6/8/8/8/4K3 w - - 0 1", "Ke2", best="Nc7+"))
+
+
+def test_fork_targets_ignore_defended_piece_of_equal_value():
+    from heuristics import fork_targets
+    # Dama branca em d4 ataca a dama preta em d7
+    defended = chess.Board("4k3/3q4/8/8/3Q4/8/8/4K3 w - - 0 1")  # rei em e8 defende d7
+    assert fork_targets(defended, chess.D4) == []
+    undefended = chess.Board("k7/3q4/8/8/3Q4/8/8/4K3 w - - 0 1")  # ninguém defende d7
+    assert fork_targets(undefended, chess.D4) == [chess.D7]
