@@ -79,6 +79,18 @@ Os testes de `tests/test_heuristics.py` marcados como `xfail` são **exercícios
 `hanging_piece` e `missed_tactic` em `heuristics.py` até eles passarem. O roteiro completo de
 heurísticas e machine learning está em [`docs/heuristicas-e-ml.md`](docs/heuristicas-e-ml.md).
 
+## Importar e analisar muitas partidas (para o dataset de ML)
+
+O botão do app analisa até 100 partidas. Para centenas, use a linha de comando:
+
+```powershell
+python -m chesscoach import chesscom SEU_USUARIO --max 500   # baixa as partidas (rápido)
+python analyze_all.py SEU_USUARIO                            # analisa as que faltam (~2 s por partida)
+```
+
+O `analyze_all.py` pode ser interrompido com Ctrl+C e retomado depois; aceita `--limit N`
+e `--depth D`. O backend pode continuar ligado enquanto ele roda.
+
 ## Linha de comando
 
 ```powershell
